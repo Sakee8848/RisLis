@@ -2,6 +2,7 @@ import { el } from '../utils.js';
 import { state, setState } from '../state.js';
 import { Header } from '../components/Header.js';
 import { AdminView } from './AdminView.js';
+import { InsurerView } from './InsurerView.js';
 
 export function DashboardView() {
     const user = state.currentUser;
@@ -13,6 +14,8 @@ export function DashboardView() {
 
     const isCaptain = user.role === 'captain';
     const isNewbie = user.role === 'newbie';
+    const isMember = user.role === 'member';
+    const showRiskProfile = isMember || isNewbie;
 
     return el('div', { class: 'animate-fade-in' },
         Header(isNewbie ? '申请状态' : state.group.name),
@@ -20,12 +23,15 @@ export function DashboardView() {
         el('div', { style: { padding: '20px' } },
             // Section: My Status / Group Status
             el('div', { class: 'card' },
-                el('div', { class: 'text-sub', style: { marginBottom: '8px' } }, isCaptain ? '团队风险指数' : '我的风险评分'),
+                el('div', { class: 'text-sub', style: { marginBottom: '8px' } }, isCaptain ? '团队风险指数' : (isNewbie ? '申请风险评分 (预览)' : '我的风险评分')),
                 el('div', { style: { display: 'flex', alignItems: 'baseline', gap: '8px' } },
                     el('span', { style: { fontSize: '48px', fontWeight: '800', color: isCaptain ? 'var(--warning)' : 'var(--success)' } }, isCaptain ? '4.2' : '1.8'),
                     el('span', { class: 'text-sub' }, '/ 10.0')
                 ),
-                el('div', { class: 'text-sub', style: { marginTop: '8px' } }, isCaptain ? '风险水平前 20%，需采取行动。' : '极佳。您已节省 45% 的保费。'),
+                el('div', { class: 'text-sub', style: { marginTop: '8px' } },
+                    isCaptain ? '风险水平前 20%，需采取行动。' :
+                        (isNewbie ? '请完善资料以获得准确评分。' : '极佳。您已节省 45% 的保费。')
+                ),
 
                 // Staircase Pricing Preview (Captain Only)
                 isCaptain ? el('div', { style: { marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' } },
@@ -38,6 +44,17 @@ export function DashboardView() {
                         el('div', { style: { position: 'absolute', right: '0', top: '-14px', fontSize: '10px', color: 'var(--text-secondary)' } }, '目标: -50%')
                     )
                 ) : null
+            ),
+
+            // Profile Completion Action (Members & Newbies)
+            showRiskProfile ? MemberRiskProfileCard(user) : null,
+
+            // Section: Insurance Cycle & Trends
+            CycleStatusCard(),
+
+            el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' } },
+                TrendChart('团队赔付率 (6月)', state.historicalData.lossRatio, 'var(--warning)', (v) => `${(v * 100).toFixed(0)}%`),
+                TrendChart('费率波动 (6月)', state.historicalData.rateDiscount, 'var(--primary)', (v) => `${v}%`)
             ),
 
             // Section: Actions (Voting) - Visible to Captain and Regular Members
@@ -64,9 +81,77 @@ export function DashboardView() {
     );
 }
 
+function CycleStatusCard() {
+    const cycle = state.insuranceCycle;
+    return el('div', { class: 'card', style: { background: 'linear-gradient(135deg, #1C1C1E, #2C2C2E)', color: 'white', border: 'none' } },
+        el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' } },
+            el('div', {},
+                el('div', { style: { fontSize: '12px', opacity: '0.7', marginBottom: '4px' } }, '折扣率统计周期剩余'),
+                el('div', { style: { fontSize: '24px', fontWeight: '700' } }, `${cycle.remainingDays} 天`)
+            ),
+            el('div', { style: { textAlign: 'right' } },
+                el('div', { style: { fontSize: '12px', opacity: '0.7', marginBottom: '4px' } }, '预计下周期折扣'),
+                el('div', { style: { fontSize: '24px', fontWeight: '700', color: 'var(--success)' } }, `${cycle.nextEstimatedDiscount}%`)
+            )
+        ),
+        el('div', { style: { height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' } },
+            el('div', { style: { width: `${(1 - cycle.remainingDays / cycle.durationDays) * 100}%`, height: '100%', background: 'var(--primary)' } })
+        )
+    );
+}
+
+function TrendChart(title, data, color, formatter) {
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = (max - min) || 1;
+
+    // Normalize values to fit within 10-40 Y range in a 0-50 height viewBox
+    const points = data.map((v, i) => {
+        const x = (i / (data.length - 1)) * 100;
+        const y = 40 - ((v - min) / range) * 30; // 10 to 40
+        return `${x},${y}`;
+    }).join(' ');
+
+    return el('div', { class: 'card', style: { padding: '12px', marginBottom: '0' } },
+        el('div', { style: { fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' } }, title),
+        el('div', { style: { height: '60px', position: 'relative' } },
+            el('svg', { viewBox: '0 0 100 50', style: { width: '100%', height: '100%', overflow: 'visible', display: 'block' } },
+                el('polyline', {
+                    points,
+                    fill: 'none',
+                    stroke: color,
+                    strokeWidth: '3',
+                    strokeLinecap: 'round',
+                    strokeLinejoin: 'round'
+                })
+            ),
+            el('div', { style: { display: 'flex', justifyContent: 'space-between', marginTop: '4px' } },
+                el('span', { style: { fontSize: '10px', color: 'var(--text-secondary)' } }, formatter(data[0])),
+                el('span', { style: { fontSize: '10px', color: 'var(--text-secondary)' } }, formatter(data[data.length - 1]))
+            )
+        )
+    );
+}
+
 function MembersList() {
+    const isRestricted = state.insuranceCycle.currentLossRatio > state.riskThresholds.forbiddenDismissalRatio;
+
+    const handleDismiss = (member) => {
+        if (isRestricted) {
+            alert(`⚠️ 风险控制警示：\n当前团队赔付率 (${(state.insuranceCycle.currentLossRatio * 100).toFixed(0)}%) 已超过安全阈值 (${(state.riskThresholds.forbiddenDismissalRatio * 100).toFixed(0)}%)。\n\n根据保司规则，在统计周期结束前，暂不能移出风险成员，以确保保障的连续性。`);
+            return;
+        }
+        if (confirm(`确定要移除成员 ${member.name} 吗？`)) {
+            const newMembers = state.group.members.filter(m => m.id !== member.id);
+            setState({ group: { ...state.group, members: newMembers } });
+        }
+    };
+
     return el('div', {},
-        el('h3', { class: 'title-medium', style: { marginTop: '24px', marginBottom: '12px' } }, '成员关注列表'),
+        el('h3', { class: 'title-medium', style: { marginTop: '24px', marginBottom: '12px' } }, '成员管理'),
+        isRestricted ? el('div', { style: { background: 'rgba(255, 149, 0, 0.1)', color: 'var(--warning)', padding: '10px', borderRadius: '8px', fontSize: '12px', marginBottom: '12px', border: '1px solid var(--warning)' } },
+            'ⓘ 当前团队风险较高，部分成员管理功能受限。'
+        ) : null,
         el('div', { style: { display: 'grid', gap: '12px' } },
             state.group.members.map(m =>
                 el('div', { class: 'card', style: { padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0' } },
@@ -74,9 +159,16 @@ function MembersList() {
                         el('div', { style: { fontWeight: '600' } }, m.name),
                         el('div', { class: 'text-sub', style: { fontSize: '12px' } }, `加入于 ${m.joinDate}`)
                     ),
-                    el('div', { style: { textAlign: 'right' } },
-                        el('div', { style: { fontWeight: 'bold', color: m.riskScore > 5 ? 'var(--danger)' : 'var(--success)' } }, m.riskScore),
-                        el('div', { class: 'text-sub', style: { fontSize: '10px' } }, '风险分')
+                    el('div', { style: { display: 'flex', alignItems: 'center', gap: '16px' } },
+                        el('div', { style: { textAlign: 'right' } },
+                            el('div', { style: { fontWeight: 'bold', color: m.riskScore > 5 ? 'var(--danger)' : 'var(--success)' } }, m.riskScore),
+                            el('div', { class: 'text-sub', style: { fontSize: '10px' } }, '风险分')
+                        ),
+                        el('button', {
+                            class: 'btn btn-secondary',
+                            style: { padding: '4px 8px', fontSize: '12px', opacity: isRestricted ? '0.5' : '1' },
+                            onClick: () => handleDismiss(m)
+                        }, '移出')
                     )
                 )
             )
@@ -103,39 +195,70 @@ function NewbieView() {
     );
 }
 
-function InsurerView() {
-    return el('div', { class: 'animate-fade-in' },
-        Header('PICC 人保财险 - 仪表盘'),
-        el('div', { style: { padding: '20px' } },
-            el('div', { class: 'card', style: { background: '#1c1c1e', color: 'white' } },
-                el('div', { class: 'text-sub', style: { color: '#8e8e93' } }, '活跃风团总数'),
-                el('div', { class: 'title-large', style: { marginBottom: '0' } }, '128'),
-                el('div', { style: { color: '#34c759', fontSize: '14px', marginTop: '4px' } }, '本周 +12%')
-            ),
+function MemberRiskProfileCard(user) {
+    const profile = state.memberProfiles[user.id] || {};
+    const filledCount = Object.keys(profile).length;
+    const totalFactors = state.riskFactors.length;
+    const isComplete = filledCount >= totalFactors;
 
-            el('h3', { class: 'title-medium', style: { marginTop: '24px', marginBottom: '12px' } }, '核心指标'),
+    if (isComplete) return null; // Hide if complete (or show "View Profile")
 
-            el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' } },
-                el('div', { class: 'card' },
-                    el('div', { class: 'text-sub' }, '赔付率 (Loss Ratio)'),
-                    el('div', { style: { fontSize: '24px', fontWeight: '700', color: 'var(--success)' } }, '32%'),
-                    el('div', { class: 'text-sub', style: { fontSize: '12px' } }, '目标 < 60%')
-                ),
-                el('div', { class: 'card' },
-                    el('div', { class: 'text-sub' }, '保费资金池'),
-                    el('div', { style: { fontSize: '24px', fontWeight: '700' } }, '¥420万'),
-                    el('div', { class: 'text-sub', style: { fontSize: '12px' } }, '年初至今')
-                )
-            ),
+    return el('div', { class: 'card', style: { borderLeft: '4px solid var(--warning)' } },
+        el('h3', { class: 'title-medium' }, '完善您的风险资料'),
+        el('p', { class: 'text-sub', style: { marginBottom: '12px' } }, '为了确保精确的保费计算，请补充您的风险因子信息。'),
 
-            el('h3', { class: 'title-medium', style: { marginTop: '24px', marginBottom: '12px' } }, '高风险团队预警'),
-            el('div', { class: 'card', style: { padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-                el('div', {},
-                    el('div', { style: { fontWeight: '600' } }, '上海徐汇外卖 B 团'),
-                    el('div', { class: 'text-sub', style: { fontSize: '12px' } }, '赔付率: 85%')
-                ),
-                el('button', { class: 'btn btn-secondary', style: { fontSize: '12px', padding: '6px 12px' } }, '审计')
+        // Form
+        el('div', { style: { display: 'grid', gap: '12px' } },
+            state.riskFactors.map(factor => {
+                const currentValue = profile[factor.id] || '';
+                return el('div', {},
+                    el('label', { style: { display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' } }, factor.label),
+                    factor.type === 'select' ?
+                        el('select', {
+                            style: { width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' },
+                            onChange: (e) => {
+                                const newProfile = { ...profile, [factor.id]: e.target.value };
+                                state.memberProfiles[user.id] = newProfile;
+                                setState({ memberProfiles: state.memberProfiles });
+                            }
+                        },
+                            el('option', { value: '' }, '请选择...'),
+                            factor.options.map(opt => el('option', { value: opt, selected: currentValue === opt }, opt))
+                        )
+                        :
+                        el('input', {
+                            type: factor.type,
+                            value: currentValue,
+                            style: { width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' },
+                            onInput: (e) => {
+                                const newProfile = { ...profile, [factor.id]: e.target.value };
+                                state.memberProfiles[user.id] = newProfile;
+                                setState({ memberProfiles: state.memberProfiles }); // Trigger re-render
+                            }
+                        })
+                );
+            })
+        ),
+
+        // Disclaimer
+        el('div', { style: { marginTop: '16px', display: 'flex', gap: '8px', alignItems: 'flex-start' } },
+            el('input', { type: 'checkbox', id: 'disclaimer', style: { marginTop: '4px' } }),
+            el('label', { for: 'disclaimer', style: { fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4' } },
+                '本人承诺上述信息真实有效。虚假申报可能导致保单失效、拒赔或承担相应法律责任。'
             )
-        )
+        ),
+
+        el('button', {
+            class: 'btn btn-primary',
+            style: { width: '100%', marginTop: '16px' },
+            onClick: () => {
+                const checkbox = document.getElementById('disclaimer');
+                if (!checkbox.checked) {
+                    alert('请勾选法律声明以继续。');
+                    return;
+                }
+                alert('资料已提交更新。');
+            }
+        }, '提交更新')
     );
 }

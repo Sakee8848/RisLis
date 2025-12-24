@@ -14,11 +14,24 @@ export function AdminView() {
                 StatCard('全局赔付率', '32%', '-2%', 'var(--success)')
             ),
 
-            el('h3', { class: 'title-medium', style: { marginBottom: '16px' } }, '接入保险公司'),
-            el('div', { style: { display: 'grid', gap: '12px' } },
-                InsurerRow('PICC (人保)', '运行中', '在线率 98%'),
-                InsurerRow('Ping An (平安)', '运行中', '在线率 99%'),
-                InsurerRow('CPIC (太保)', '维护中', 'API 降级', 'var(--warning)')
+            el('h3', { class: 'title-medium', style: { marginBottom: '16px' } }, '保险公司评估矩阵'),
+            el('div', { style: { overflowX: 'auto', background: 'white', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-sm)' } },
+                el('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '14px' } },
+                    el('thead', {},
+                        el('tr', { style: { borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' } },
+                            el('th', { style: { padding: '12px 8px', fontWeight: '500' } }, '合作方'),
+                            el('th', { style: { padding: '12px 8px', fontWeight: '500' } }, '条款友好度'),
+                            el('th', { style: { padding: '12px 8px', fontWeight: '500' } }, '价格竞争力'),
+                            el('th', { style: { padding: '12px 8px', fontWeight: '500' } }, '理赔体验'),
+                            el('th', { style: { padding: '12px 8px', fontWeight: '500' } }, '品牌影响力')
+                        )
+                    ),
+                    el('tbody', {},
+                        InsurerMatrixRow('PICC (人保)', 4.8, 4.2, 4.9, 5.0),
+                        InsurerMatrixRow('Ping An (平安)', 4.5, 4.6, 4.8, 5.0),
+                        InsurerMatrixRow('CPIC (太保)', 4.0, 4.3, 3.8, 4.5)
+                    )
+                )
             ),
 
             el('h3', { class: 'title-medium', style: { marginTop: '24px', marginBottom: '16px' } }, '系统警报'),
@@ -38,15 +51,23 @@ function StatCard(label, value, change, color = 'var(--text-primary)') {
     );
 }
 
-function InsurerRow(name, status, subtext, statusColor = 'var(--success)') {
-    return el('div', { class: 'card', style: { padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0' } },
-        el('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
-            el('div', { style: { width: '10px', height: '10px', borderRadius: '50%', background: statusColor } }),
-            el('div', {},
-                el('div', { style: { fontWeight: '600' } }, name),
-                el('div', { class: 'text-sub', style: { fontSize: '11px' } }, subtext)
-            )
-        ),
-        el('div', { class: 'text-sub' }, status)
+function InsurerMatrixRow(name, termScore, priceScore, claimScore, brandScore) {
+    const getBar = (score) => {
+        const percent = (score / 5) * 100;
+        const color = score >= 4.5 ? 'var(--success)' : (score >= 4.0 ? 'var(--primary)' : 'var(--warning)');
+        return el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+            el('div', { style: { flex: 1, height: '6px', background: '#f5f5f7', borderRadius: '3px', overflow: 'hidden' } },
+                el('div', { style: { width: `${percent}%`, height: '100%', background: color } })
+            ),
+            el('span', { style: { fontSize: '12px', fontWeight: '600', width: '24px', textAlign: 'right' } }, score.toFixed(1))
+        );
+    };
+
+    return el('tr', { style: { borderBottom: '1px solid #f5f5f7' } },
+        el('td', { style: { padding: '12px 8px', fontWeight: '500' } }, name),
+        el('td', { style: { padding: '12px 8px' } }, getBar(termScore)),
+        el('td', { style: { padding: '12px 8px' } }, getBar(priceScore)),
+        el('td', { style: { padding: '12px 8px' } }, getBar(claimScore)),
+        el('td', { style: { padding: '12px 8px' } }, getBar(brandScore))
     );
 }

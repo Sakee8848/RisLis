@@ -1,5 +1,11 @@
 export function el(tag, props = {}, ...children) {
-    const element = document.createElement(tag);
+    const svgTags = ['svg', 'polyline', 'line', 'circle', 'path', 'rect', 'text', 'g', 'defs', 'linearGradient', 'stop'];
+    const tagName = tag.toLowerCase().trim();
+    const isSvg = svgTags.includes(tagName);
+    const element = isSvg
+        ? document.createElementNS('http://www.w3.org/2000/svg', tag)
+        : document.createElement(tag);
+    if (isSvg) console.log(`Created SVG element: ${tag} in namespace ${element.namespaceURI}`);
     if (!props) props = {};
     Object.entries(props).forEach(([key, value]) => {
         if (key.startsWith('on') && typeof value === 'function') {
@@ -9,7 +15,9 @@ export function el(tag, props = {}, ...children) {
         } else if (key === 'style' && typeof value === 'object') {
             Object.assign(element.style, value);
         } else {
-            element.setAttribute(key, value);
+            // Convert camelCase to kebab-case for SVG attributes
+            const name = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+            element.setAttribute(name, value);
         }
     });
     children.forEach(child => {

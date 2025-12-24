@@ -15,7 +15,48 @@ export const state = {
         { id: 'u3', name: '李娜 (员)', role: 'member', avatar: '👩🏻' },
         { id: 'u4', name: 'PICC (保)', role: 'insurer', avatar: '🏢' },
         { id: 'u5', name: 'Admin', role: 'admin', avatar: '🛡️' }
-    ]
+    ],
+    // Dynamic Pricing & Risk Factors
+    riskFactors: [
+        {
+            id: 'rf1',
+            label: '工作区域',
+            type: 'select',
+            options: ['市中心繁忙区', '郊区工业园', '居民住宅区'],
+            weight: 1.2
+        },
+        {
+            id: 'rf2',
+            label: '每日平均工时',
+            type: 'number',
+            unit: '小时',
+            weight: 1.5
+        }
+    ],
+    copilotMessages: [
+        { role: 'system', content: '您好，我是您的定价 Copilot。请上传团单文档或询问定价策略。' }
+    ],
+    isCopilotOpen: false, // Default minimized
+    memberProfiles: {
+        'u3': { 'rf1': '市中心繁忙区', 'rf2': 10 }
+    },
+    // New Insurance Rules Data
+    insuranceCycle: {
+        startDate: '2025-12-01',
+        durationDays: 30,
+        currentLossRatio: 0.75, // Now above threshold (0.7)
+        remainingDays: 6,
+        nextEstimatedDiscount: -15
+    },
+    historicalData: {
+        months: ['7月', '8月', '9月', '10月', '11月', '12月'],
+        lossRatio: [0.45, 0.52, 0.48, 0.75, 0.68, 0.65],
+        rateDiscount: [-25, -20, -22, -10, -12, -15]
+    },
+    riskThresholds: {
+        maxLossRatio: 0.8,
+        forbiddenDismissalRatio: 0.7 // If loss ratio > 70%, dismissal is restricted
+    }
 };
 
 const listeners = [];
@@ -42,15 +83,15 @@ state.group.members = [
 ];
 
 state.group.pendingMembers = [
-    { 
-        id: 'p1', 
-        name: '王强', 
-        type: 'New Applicant', 
-        riskAssessment: { 
-            score: 4.2, 
-            details: { traffic: 'Low', medical: 'Medium', credit: 'High' },
-            summary: '平时骑行稳健，但有两次深夜急诊记录。'
+    {
+        id: 'p1',
+        name: '王强',
+        type: '新申请',
+        riskAssessment: {
+            score: 4.2,
+            details: { traffic: 'Low', medical: 'Medium', credit: 'Low' },
+            summary: '日常骑行风格稳健，无重大违章记录。'
         },
-        votes: { approve: 5, reject: 0, total: 10 } 
+        votes: { approve: 5, reject: 0, total: 10 }
     }
 ];

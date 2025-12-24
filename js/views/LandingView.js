@@ -1,6 +1,17 @@
 import { el } from '../utils.js';
 import { state, setState } from '../state.js';
 
+function getRoleName(role) {
+    const roles = {
+        'captain': '团长',
+        'newbie': '新人 (新申请)',
+        'member': '团员',
+        'insurer': '保险公司',
+        'admin': '系统管理员'
+    };
+    return roles[role] || role;
+}
+
 export function LandingView() {
     return el('div', { class: 'animate-fade-in', style: { padding: '40px 24px', textAlign: 'center' } },
         // Logo Area
@@ -26,7 +37,7 @@ export function LandingView() {
                         el('span', { style: { fontSize: '32px' } }, user.avatar),
                         el('div', {},
                             el('div', { style: { fontWeight: '600', fontSize: '17px' } }, user.name),
-                            el('div', { class: 'text-sub' }, capitalize(user.role))
+                            el('div', { class: 'text-sub' }, getRoleName(user.role))
                         )
                     ),
                     el('div', { style: { color: 'var(--text-secondary)' } }, '→')
@@ -34,8 +45,4 @@ export function LandingView() {
             )
         )
     );
-}
-
-function capitalize(str) {
-    return str.replace(/\b\w/g, l => l.toUpperCase());
 }
