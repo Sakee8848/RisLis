@@ -25,7 +25,7 @@ export function DashboardView() {
             el('div', { class: 'card' },
                 el('div', { class: 'text-sub', style: { marginBottom: '8px' } }, isCaptain ? '团队风险指数' : (isNewbie ? '申请风险评分 (预览)' : '我的风险评分')),
                 el('div', { style: { display: 'flex', alignItems: 'baseline', gap: '8px' } },
-                    el('span', { style: { fontSize: '48px', fontWeight: '800', color: isCaptain ? 'var(--warning)' : 'var(--success)' } }, isCaptain ? '4.2' : '1.8'),
+                    el('span', { style: { fontSize: '48px', fontWeight: '800', color: isCaptain ? 'var(--warning)' : 'var(--success)' } }, isCaptain ? '4.2' : (state.memberProfiles[user.id] ? '1.8' : '2.5')),
                     el('span', { class: 'text-sub' }, '/ 10.0')
                 ),
                 el('div', { class: 'text-sub', style: { marginTop: '8px' } },
@@ -64,10 +64,11 @@ export function DashboardView() {
                 ) : null,
 
             // Section: Portable Claims History (For Members)
-            isMember && user.portableClaims && user.portableClaims.length > 0 ?
+            // Fix: Find user in state.users to ensure we have the latest portableClaims data
+            (isMember && (state.users.find(u => u.id === user.id)?.portableClaims?.length > 0)) ?
                 el('div', { class: 'card' },
                     el('h3', { class: 'title-medium', style: { marginBottom: '12px' } }, '个人理赔信用轨迹 (数据随身带)'),
-                    user.portableClaims.map(claim =>
+                    (state.users.find(u => u.id === user.id).portableClaims).map(claim =>
                         el('div', { style: { padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '12px' } },
                             el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
                                 el('span', { style: { fontWeight: '600' } }, claim.type),
