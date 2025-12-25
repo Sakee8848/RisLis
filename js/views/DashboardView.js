@@ -1,4 +1,4 @@
-import { el } from '../utils.js';
+import { el, elSvg } from '../utils.js';
 import { state, setState } from '../state.js';
 import { Header } from '../components/Header.js';
 import { AdminView } from './AdminView.js';
@@ -115,8 +115,8 @@ function TrendChart(title, data, color, formatter) {
     return el('div', { class: 'card', style: { padding: '12px', marginBottom: '0' } },
         el('div', { style: { fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' } }, title),
         el('div', { style: { height: '60px', position: 'relative' } },
-            el('svg', { viewBox: '0 0 100 50', style: { width: '100%', height: '100%', overflow: 'visible', display: 'block' } },
-                el('polyline', {
+            elSvg('svg', { viewBox: '0 0 100 50', style: { width: '100%', height: '100%', overflow: 'visible', display: 'block' } },
+                elSvg('polyline', {
                     points,
                     fill: 'none',
                     stroke: color,
