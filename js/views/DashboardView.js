@@ -29,18 +29,18 @@ export function DashboardView() {
                     el('span', { class: 'text-sub' }, '/ 10.0')
                 ),
                 el('div', { class: 'text-sub', style: { marginTop: '8px' } },
-                    isCaptain ? '风险水平前 20%，需采取行动。' :
-                        (isNewbie ? '请完善资料以获得准确评分。' : '极佳。您已节省 45% 的保费。')
+                    isCaptain ? (state.insuranceCycle.currentLossRatio > state.riskThresholds.forbiddenDismissalRatio ? '风险水平过高，功能受限。' : '风险水平前 20%，需采取行动。') :
+                        (isNewbie ? '请完善资料以获得准确评分。' : `极佳。本月您节省了 ${Math.abs(state.insuranceCycle.nextEstimatedDiscount)}% 的保费。`)
                 ),
 
                 // Staircase Pricing Preview (Captain Only)
                 isCaptain ? el('div', { style: { marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' } },
                     el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' } },
-                        el('span', { class: 'text-sub' }, '当前保费折扣'),
-                        el('span', { style: { fontWeight: '700', color: 'var(--success)' } }, '-20%')
+                        el('span', { class: 'text-sub' }, '当前周期折扣'),
+                        el('span', { style: { fontWeight: '700', color: 'var(--success)' } }, `${state.historicalData.rateDiscount[state.historicalData.rateDiscount.length - 1]}%`)
                     ),
                     el('div', { style: { width: '100%', height: '6px', background: '#e5e5ea', borderRadius: '3px', position: 'relative' } },
-                        el('div', { style: { width: '40%', height: '100%', background: 'var(--success)', borderRadius: '3px' } }), // 20% discount (mock visual)
+                        el('div', { style: { width: `${Math.abs(state.historicalData.rateDiscount[state.historicalData.rateDiscount.length - 1])}%`, height: '100%', background: 'var(--success)', borderRadius: '3px' } }),
                         el('div', { style: { position: 'absolute', right: '0', top: '-14px', fontSize: '10px', color: 'var(--text-secondary)' } }, '目标: -50%')
                     )
                 ) : null
@@ -56,6 +56,27 @@ export function DashboardView() {
                 TrendChart('团队赔付率 (6月)', state.historicalData.lossRatio, 'var(--warning)', (v) => `${(v * 100).toFixed(0)}%`),
                 TrendChart('费率波动 (6月)', state.historicalData.rateDiscount, 'var(--primary)', (v) => `${v}%`)
             ),
+
+            // Refusal of Coverage Warning
+            state.insuranceCycle.currentLossRatio >= state.riskThresholds.maxLossRatio ?
+                el('div', { class: 'card', style: { background: 'var(--danger)', color: 'white', fontWeight: 'bold' } },
+                    '🚨 严重警告：团队赔付率过高！已触发保司拒保阈值，请立即优化骑行行为。'
+                ) : null,
+
+            // Section: Portable Claims History (For Members)
+            isMember && user.portableClaims && user.portableClaims.length > 0 ?
+                el('div', { class: 'card' },
+                    el('h3', { class: 'title-medium', style: { marginBottom: '12px' } }, '个人理赔信用轨迹 (数据随身带)'),
+                    user.portableClaims.map(claim =>
+                        el('div', { style: { padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '12px' } },
+                            el('div', { style: { display: 'flex', justifyContent: 'space-between' } },
+                                el('span', { style: { fontWeight: '600' } }, claim.type),
+                                el('span', {}, claim.date)
+                            ),
+                            el('div', { class: 'text-sub' }, `金额: ¥${claim.amount} • 前所属风团: ${claim.group}`)
+                        )
+                    )
+                ) : null,
 
             // Section: Actions (Voting) - Visible to Captain and Regular Members
             state.group.pendingMembers.length > 0 && !isNewbie ?
@@ -157,7 +178,10 @@ function MembersList() {
                 el('div', { class: 'card', style: { padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0' } },
                     el('div', {},
                         el('div', { style: { fontWeight: '600' } }, m.name),
-                        el('div', { class: 'text-sub', style: { fontSize: '12px' } }, `加入于 ${m.joinDate}`)
+                        el('div', { class: 'text-sub', style: { fontSize: '12px' } }, `加入于 ${m.joinDate}`),
+                        // Portable claims record indicator
+                        (state.users.find(u => u.name.includes(m.name))?.portableClaims?.length > 0) ?
+                            el('span', { style: { background: 'rgba(255, 59, 48, 0.1)', color: 'var(--danger)', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block' } }, '⚠️ 带病投保/历史理赔记录跟随') : null
                     ),
                     el('div', { style: { display: 'flex', alignItems: 'center', gap: '16px' } },
                         el('div', { style: { textAlign: 'right' } },

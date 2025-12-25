@@ -10,9 +10,9 @@ export const state = {
         pendingMembers: []
     },
     users: [
-        { id: 'u1', name: '张伟 (团长)', role: 'captain', avatar: '👨🏻‍✈️' },
-        { id: 'u2', name: '王强 (新)', role: 'newbie', avatar: '🛵' },
-        { id: 'u3', name: '李娜 (员)', role: 'member', avatar: '👩🏻' },
+        { id: 'u1', name: '张伟 (团长)', role: 'captain', avatar: '👨🏻‍✈️', portableClaims: [] },
+        { id: 'u2', name: '王强 (新)', role: 'newbie', avatar: '🛵', portableClaims: [] },
+        { id: 'u3', name: '李娜 (员)', role: 'member', avatar: '👩🏻', portableClaims: [{ date: '2024-05-12', type: '轻微擦伤', amount: 500, group: '杭州蓝天团' }] },
         { id: 'u4', name: 'PICC (保)', role: 'insurer', avatar: '🏢' },
         { id: 'u5', name: 'Admin', role: 'admin', avatar: '🛡️' }
     ],
